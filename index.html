@@ -491,4 +491,24 @@ function App(){
 
       <div style={{display:'flex',background:'#0F1A28',borderTop:'1px solid #1E2D3F',padding:'6px 0 8px',position:'sticky',bottom:0}}>
         {NAV.map(item=>(
-          <button key={item.id} onClick={()=>setTab(
+          <button key={item.id} onClick={()=>setTab(item.id)} style={{
+            flex:1,display:'flex',flexDirection:'column',alignItems:'center',
+            gap:2,border:'none',background:'transparent',padding:'4px 0',
+          }}>
+            <span style={{fontSize:19}}>{item.icon}</span>
+            <span style={{fontSize:10,fontWeight:tab===item.id?700:500,
+              color:tab===item.id?'#22C55E':'#4A6080',
+              borderBottom:tab===item.id?'2px solid #22C55E':'2px solid transparent'}}>
+              {item.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
