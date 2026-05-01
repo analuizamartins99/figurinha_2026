@@ -123,8 +123,8 @@ const SC = {
 const SCS = {bg:'#1E1A2E',border:'#7C3AED',nc:'#C4B5FD'};
 
 function StickerBtn({teamId,num,code,state,onToggle,isSpecial}){
-  const c = (state==='missing'&&isSpecial)?SCS:SC[state];
-  return (
+  const c=(state==='missing'&&isSpecial)?SCS:SC[state];
+  return(
     <button onClick={()=>onToggle(k(teamId,num))} style={{
       background:c.bg,border:`2px solid ${c.border}`,borderRadius:10,
       padding:'5px 2px 4px',display:'flex',flexDirection:'column',
@@ -145,7 +145,7 @@ function TeamSection({team,group,stickers,onToggle}){
   const owned=nums.filter(n=>stickers[k(team.id,n)]==='owned').length;
   const dup=nums.filter(n=>stickers[k(team.id,n)]==='duplicate').length;
   const pct=Math.round(((owned+dup)/team.count)*100);
-  return (
+  return(
     <div style={{marginBottom:2}}>
       <button onClick={()=>setOpen(o=>!o)} style={{
         width:'100%',display:'flex',alignItems:'center',gap:10,
@@ -196,7 +196,7 @@ function GroupSection({group,stickers,onToggle}){
   const owned=allKeys.filter(x=>stickers[x]==='owned').length;
   const dup=allKeys.filter(x=>stickers[x]==='duplicate').length;
   const pct=Math.round(((owned+dup)/allKeys.length)*100);
-  return (
+  return(
     <div style={{marginBottom:8}}>
       <button onClick={()=>setOpen(o=>!o)} style={{
         width:'100%',display:'flex',alignItems:'center',gap:10,
@@ -242,7 +242,7 @@ function MissingTab({stickers}){
     return r;
   },[stickers]);
   const total=items.reduce((a,x)=>a+x.nums.length,0);
-  return (
+  return(
     <div style={{padding:'0 12px 20px'}}>
       <div style={{background:'#17243A',borderRadius:12,padding:'12px 14px',marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <span style={{color:'#94A3B8',fontSize:13}}>Figurinhas faltando</span>
@@ -285,7 +285,7 @@ function DupTab({stickers}){
     return r;
   },[stickers]);
   const total=items.reduce((a,x)=>a+x.nums.length,0);
-  return (
+  return(
     <div style={{padding:'0 12px 20px'}}>
       <div style={{background:'#17243A',borderRadius:12,padding:'12px 14px',marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <span style={{color:'#94A3B8',fontSize:13}}>Para trocar</span>
@@ -327,14 +327,14 @@ function StatsTab({stickers}){
   const owned=Object.values(stickers).filter(v=>v==='owned').length;
   const dup=Object.values(stickers).filter(v=>v==='duplicate').length;
   const pct=Math.round(((owned+dup)/TOTAL)*100);
+  const R=2*Math.PI*50;
   const groupStats=GROUPS_DATA.map(g=>{
     const keys=g.teams.flatMap(t=>Array.from({length:t.count},(_,i)=>k(t.id,i+1)));
     const o=keys.filter(x=>stickers[x]==='owned').length;
     const d=keys.filter(x=>stickers[x]==='duplicate').length;
     return{group:g,owned:o,dup:d,total:keys.length,pct:Math.round(((o+d)/keys.length)*100)};
   });
-  const R=2*Math.PI*50;
-  return (
+  return(
     <div style={{padding:'0 12px 20px'}}>
       <div style={{background:'linear-gradient(135deg,#17243A,#1E3050)',borderRadius:16,padding:20,marginBottom:12,textAlign:'center'}}>
         <div style={{position:'relative',width:120,height:120,margin:'0 auto'}}>
@@ -395,6 +395,7 @@ function App(){
     try{const s=localStorage.getItem('panini2026');return s?JSON.parse(s):{}}catch{return{};}
   });
   const [tab,setTab]=useState('album');
+  const [search,setSearch]=useState('');
 
   useEffect(()=>{
     try{localStorage.setItem('panini2026',JSON.stringify(stickers));}catch{}
@@ -412,7 +413,20 @@ function App(){
   const dup=useMemo(()=>Object.values(stickers).filter(v=>v==='duplicate').length,[stickers]);
   const pct=Math.round(((owned+dup)/TOTAL)*100);
 
-  return (
+  const filteredGroups=useMemo(()=>{
+    const q=search.toLowerCase().trim();
+    if(!q)return GROUPS_DATA;
+    return GROUPS_DATA.map(g=>({
+      ...g,
+      teams:g.teams.filter(t=>
+        t.name.toLowerCase().includes(q)||
+        t.code.toLowerCase().includes(q)||
+        g.name.toLowerCase().includes(q)
+      )
+    })).filter(g=>g.teams.length>0);
+  },[search]);
+
+  return(
     <div style={{minHeight:'100vh',background:'#0D1421',display:'flex',flexDirection:'column',maxWidth:430,margin:'0 auto'}}>
       <div style={{background:'linear-gradient(135deg,#0D1F3C,#1A3A5C)',padding:'14px 16px 10px',
         borderBottom:'1px solid #1E2D3F',position:'sticky',top:0,zIndex:10}}>
@@ -442,7 +456,33 @@ function App(){
 
       <div style={{flex:1,overflowY:'auto',paddingTop:10}}>
         {tab==='album'
-          ?<div style={{padding:'0 12px 20px'}}>{GROUPS_DATA.map(g=><GroupSection key={g.id} group={g} stickers={stickers} onToggle={toggle}/>)}</div>
+          ?<div style={{padding:'0 12px 20px'}}>
+            <div style={{position:'relative',marginBottom:12}}>
+              <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:16,pointerEvents:'none'}}>🔍</span>
+              <input
+                type="text"
+                placeholder="Buscar seleção... (ex: Brasil, BRA, Grupo C)"
+                value={search}
+                onChange={e=>setSearch(e.target.value)}
+                style={{
+                  width:'100%',background:'#17243A',border:'1px solid #2D3F55',
+                  borderRadius:10,padding:'10px 36px 10px 38px',
+                  color:'#E2E8F0',fontSize:13,fontFamily:'Barlow Condensed,sans-serif',
+                  outline:'none',
+                }}
+              />
+              {search&&(
+                <button onClick={()=>setSearch('')} style={{
+                  position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',
+                  background:'none',border:'none',color:'#4A6080',fontSize:18,lineHeight:1,padding:2,
+                }}>×</button>
+              )}
+            </div>
+            {filteredGroups.length===0
+              ?<div style={{textAlign:'center',padding:'40px 0',color:'#4A6080',fontSize:13}}>Nenhuma seleção encontrada</div>
+              :filteredGroups.map(g=><GroupSection key={g.id} group={g} stickers={stickers} onToggle={toggle}/>)
+            }
+          </div>
           :tab==='missing'?<MissingTab stickers={stickers}/>
           :tab==='dups'?<DupTab stickers={stickers}/>
           :<StatsTab stickers={stickers}/>
@@ -451,24 +491,4 @@ function App(){
 
       <div style={{display:'flex',background:'#0F1A28',borderTop:'1px solid #1E2D3F',padding:'6px 0 8px',position:'sticky',bottom:0}}>
         {NAV.map(item=>(
-          <button key={item.id} onClick={()=>setTab(item.id)} style={{
-            flex:1,display:'flex',flexDirection:'column',alignItems:'center',
-            gap:2,border:'none',background:'transparent',padding:'4px 0',
-          }}>
-            <span style={{fontSize:19}}>{item.icon}</span>
-            <span style={{fontSize:10,fontWeight:tab===item.id?700:500,
-              color:tab===item.id?'#22C55E':'#4A6080',
-              borderBottom:tab===item.id?'2px solid #22C55E':'2px solid transparent'}}>
-              {item.label}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
-</body>
-</html>
+          <button key={item.id} onClick={()=>setTab(
