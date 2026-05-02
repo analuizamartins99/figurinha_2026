@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="Panini 2026"/>
   <meta name="theme-color" content="#0D1421"/>
-  <title>⚽ Copa 2026 Panini  Beta v2 ⚽</title>
+  <title>⚽ Copa 2026 Panini - Beta v2 ⚽</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;900&display=swap" rel="stylesheet"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -24,103 +24,121 @@
 const { useState, useEffect, useCallback, useMemo } = React;
 
 const GROUPS_DATA = [
-  { id:"intro", name:"Especiais / Intro", shortName:"⭐", color:"#F59E0B",
+  { id:"intro", name:"Especiais / Intro", shortName:"STAR", color:"#F59E0B",
     teams:[
-      {id:"fwc",name:"FIFA World Cup",code:"FWC",flag:"🏆",count:19,specials:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]},
-      {id:"cc",name:"Coca-Cola",code:"CC",flag:"🥤",count:14,specials:[1,2,3,4,5,6,7,8,9,10,11,12,13,14]},
+      {id:"fwc",name:"FIFA World Cup",code:"FWC",flag:"Trophy",count:19,specials:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]},
+      {id:"cc", name:"Coca-Cola",      code:"CC", flag:"Cup",   count:14,specials:[1,2,3,4,5,6,7,8,9,10,11,12,13,14]},
     ]},
   { id:"A", name:"Grupo A", shortName:"A", color:"#22C55E",
     teams:[
-      {id:"mex",name:"México",code:"MEX",flag:"🇲🇽",count:20,specials:[1,13]},
-      {id:"rsa",name:"África do Sul",code:"RSA",flag:"🇿🇦",count:20,specials:[1,13]},
-      {id:"kor",name:"Coreia do Sul",code:"KOR",flag:"🇰🇷",count:20,specials:[1,13]},
-      {id:"cze",name:"Tchéquia",code:"CZE",flag:"🇨🇿",count:20,specials:[1,13]},
+      {id:"mex",name:"Mexico",        code:"MEX",flag:"MX",count:20,specials:[1,13]},
+      {id:"rsa",name:"Africa do Sul", code:"RSA",flag:"ZA",count:20,specials:[1,13]},
+      {id:"kor",name:"Coreia do Sul", code:"KOR",flag:"KR",count:20,specials:[1,13]},
+      {id:"cze",name:"Tchequia",      code:"CZE",flag:"CZ",count:20,specials:[1,13]},
     ]},
   { id:"B", name:"Grupo B", shortName:"B", color:"#3B82F6",
     teams:[
-      {id:"can",name:"Canadá",code:"CAN",flag:"🇨🇦",count:20,specials:[1,13]},
-      {id:"bih",name:"Bósnia-Herz.",code:"BIH",flag:"🇧🇦",count:20,specials:[1,13]},
-      {id:"qat",name:"Qatar",code:"QAT",flag:"🇶🇦",count:20,specials:[1,13]},
-      {id:"sui",name:"Suíça",code:"SUI",flag:"🇨🇭",count:20,specials:[1,13]},
+      {id:"can",name:"Canada",      code:"CAN",flag:"CA",count:20,specials:[1,13]},
+      {id:"bih",name:"Bosnia-Herz.",code:"BIH",flag:"BA",count:20,specials:[1,13]},
+      {id:"qat",name:"Qatar",       code:"QAT",flag:"QA",count:20,specials:[1,13]},
+      {id:"sui",name:"Suica",       code:"SUI",flag:"CH",count:20,specials:[1,13]},
     ]},
   { id:"C", name:"Grupo C", shortName:"C", color:"#EC4899",
     teams:[
-      {id:"bra",name:"Brasil",code:"BRA",flag:"🇧🇷",count:20,specials:[1,13]},
-      {id:"mar",name:"Marrocos",code:"MAR",flag:"🇲🇦",count:20,specials:[1,13]},
-      {id:"hai",name:"Haiti",code:"HAI",flag:"🇭🇹",count:20,specials:[1,13]},
-      {id:"sco",name:"Escócia",code:"SCO",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",count:20,specials:[1,13]},
+      {id:"bra",name:"Brasil",  code:"BRA",flag:"BR",count:20,specials:[1,13]},
+      {id:"mar",name:"Marrocos",code:"MAR",flag:"MA",count:20,specials:[1,13]},
+      {id:"hai",name:"Haiti",   code:"HAI",flag:"HT",count:20,specials:[1,13]},
+      {id:"sco",name:"Escocia", code:"SCO",flag:"SCO",count:20,specials:[1,13]},
     ]},
   { id:"D", name:"Grupo D", shortName:"D", color:"#8B5CF6",
     teams:[
-      {id:"usa",name:"EUA",code:"USA",flag:"🇺🇸",count:20,specials:[1,13]},
-      {id:"par",name:"Paraguai",code:"PAR",flag:"🇵🇾",count:20,specials:[1,13]},
-      {id:"aus",name:"Austrália",code:"AUS",flag:"🇦🇺",count:20,specials:[1,13]},
-      {id:"tur",name:"Turquia",code:"TUR",flag:"🇹🇷",count:20,specials:[1,13]},
+      {id:"usa",name:"EUA",       code:"USA",flag:"US",count:20,specials:[1,13]},
+      {id:"par",name:"Paraguai",  code:"PAR",flag:"PY",count:20,specials:[1,13]},
+      {id:"aus",name:"Australia", code:"AUS",flag:"AU",count:20,specials:[1,13]},
+      {id:"tur",name:"Turquia",   code:"TUR",flag:"TR",count:20,specials:[1,13]},
     ]},
   { id:"E", name:"Grupo E", shortName:"E", color:"#EF4444",
     teams:[
-      {id:"ger",name:"Alemanha",code:"GER",flag:"🇩🇪",count:20,specials:[1,13]},
-      {id:"cur",name:"Curaçao",code:"CUW",flag:"🇨🇼",count:20,specials:[1,13]},
-      {id:"civ",name:"Costa do Marfim",code:"CIV",flag:"🇨🇮",count:20,specials:[1,13]},
-      {id:"ecu",name:"Equador",code:"ECU",flag:"🇪🇨",count:20,specials:[1,13]},
+      {id:"ger",name:"Alemanha",       code:"GER",flag:"DE",count:20,specials:[1,13]},
+      {id:"cur",name:"Curacao",        code:"CUW",flag:"CW",count:20,specials:[1,13]},
+      {id:"civ",name:"Costa do Marfim",code:"CIV",flag:"CI",count:20,specials:[1,13]},
+      {id:"ecu",name:"Equador",        code:"ECU",flag:"EC",count:20,specials:[1,13]},
     ]},
   { id:"F", name:"Grupo F", shortName:"F", color:"#F97316",
     teams:[
-      {id:"ned",name:"Holanda",code:"NED",flag:"🇳🇱",count:20,specials:[1,13]},
-      {id:"jpn",name:"Japão",code:"JPN",flag:"🇯🇵",count:20,specials:[1,13]},
-      {id:"swe",name:"Suécia",code:"SWE",flag:"🇸🇪",count:20,specials:[1,13]},
-      {id:"tun",name:"Tunísia",code:"TUN",flag:"🇹🇳",count:20,specials:[1,13]},
+      {id:"ned",name:"Holanda", code:"NED",flag:"NL",count:20,specials:[1,13]},
+      {id:"jpn",name:"Japao",   code:"JPN",flag:"JP",count:20,specials:[1,13]},
+      {id:"swe",name:"Suecia",  code:"SWE",flag:"SE",count:20,specials:[1,13]},
+      {id:"tun",name:"Tunisia", code:"TUN",flag:"TN",count:20,specials:[1,13]},
     ]},
   { id:"G", name:"Grupo G", shortName:"G", color:"#06B6D4",
     teams:[
-      {id:"bel",name:"Bélgica",code:"BEL",flag:"🇧🇪",count:20,specials:[1,13]},
-      {id:"egy",name:"Egito",code:"EGV",flag:"🇪🇬",count:20,specials:[1,13]},
-      {id:"irn",name:"Irã",code:"IRN",flag:"🇮🇷",count:20,specials:[1,13]},
-      {id:"nzl",name:"Nova Zelândia",code:"NZL",flag:"🇳🇿",count:20,specials:[1,13]},
+      {id:"bel",name:"Belgica",       code:"BEL",flag:"BE",count:20,specials:[1,13]},
+      {id:"egy",name:"Egito",         code:"EGV",flag:"EG",count:20,specials:[1,13]},
+      {id:"irn",name:"Ira",           code:"IRN",flag:"IR",count:20,specials:[1,13]},
+      {id:"nzl",name:"Nova Zelandia", code:"NZL",flag:"NZ",count:20,specials:[1,13]},
     ]},
   { id:"H", name:"Grupo H", shortName:"H", color:"#D946EF",
     teams:[
-      {id:"esp",name:"Espanha",code:"ESP",flag:"🇪🇸",count:20,specials:[1,13]},
-      {id:"cpv",name:"Cabo Verde",code:"CPV",flag:"🇨🇻",count:20,specials:[1,13]},
-      {id:"ksa",name:"Arábia Saudita",code:"KSA",flag:"🇸🇦",count:20,specials:[1,13]},
-      {id:"uru",name:"Uruguai",code:"URU",flag:"🇺🇾",count:20,specials:[1,13]},
+      {id:"esp",name:"Espanha",       code:"ESP",flag:"ES",count:20,specials:[1,13]},
+      {id:"cpv",name:"Cabo Verde",    code:"CPV",flag:"CV",count:20,specials:[1,13]},
+      {id:"ksa",name:"Arabia Saudita",code:"KSA",flag:"SA",count:20,specials:[1,13]},
+      {id:"uru",name:"Uruguai",       code:"URU",flag:"UY",count:20,specials:[1,13]},
     ]},
   { id:"I", name:"Grupo I", shortName:"I", color:"#10B981",
     teams:[
-      {id:"fra",name:"França",code:"FRA",flag:"🇫🇷",count:20,specials:[1,13]},
-      {id:"sen",name:"Senegal",code:"SEN",flag:"🇸🇳",count:20,specials:[1,13]},
-      {id:"irq",name:"Iraque",code:"IRQ",flag:"🇮🇶",count:20,specials:[1,13]},
-      {id:"nor",name:"Noruega",code:"NOR",flag:"🇳🇴",count:20,specials:[1,13]},
+      {id:"fra",name:"Franca",  code:"FRA",flag:"FR",count:20,specials:[1,13]},
+      {id:"sen",name:"Senegal", code:"SEN",flag:"SN",count:20,specials:[1,13]},
+      {id:"irq",name:"Iraque",  code:"IRQ",flag:"IQ",count:20,specials:[1,13]},
+      {id:"nor",name:"Noruega", code:"NOR",flag:"NO",count:20,specials:[1,13]},
     ]},
   { id:"J", name:"Grupo J", shortName:"J", color:"#6366F1",
     teams:[
-      {id:"arg",name:"Argentina",code:"ARG",flag:"🇦🇷",count:20,specials:[1,13]},
-      {id:"alg",name:"Argélia",code:"ALG",flag:"🇩🇿",count:20,specials:[1,13]},
-      {id:"aut",name:"Áustria",code:"AUT",flag:"🇦🇹",count:20,specials:[1,13]},
-      {id:"jor",name:"Jordânia",code:"JOR",flag:"🇯🇴",count:20,specials:[1,13]},
+      {id:"arg",name:"Argentina",code:"ARG",flag:"AR",count:20,specials:[1,13]},
+      {id:"alg",name:"Algeria",  code:"ALG",flag:"DZ",count:20,specials:[1,13]},
+      {id:"aut",name:"Austria",  code:"AUT",flag:"AT",count:20,specials:[1,13]},
+      {id:"jor",name:"Jordania", code:"JOR",flag:"JO",count:20,specials:[1,13]},
     ]},
   { id:"K", name:"Grupo K", shortName:"K", color:"#84CC16",
     teams:[
-      {id:"por",name:"Portugal",code:"POR",flag:"🇵🇹",count:20,specials:[1,13]},
-      {id:"cod",name:"RD Congo",code:"COD",flag:"🇨🇩",count:20,specials:[1,13]},
-      {id:"uzb",name:"Uzbequistão",code:"UZB",flag:"🇺🇿",count:20,specials:[1,13]},
-      {id:"col",name:"Colômbia",code:"COL",flag:"🇨🇴",count:20,specials:[1,13]},
+      {id:"por",name:"Portugal",   code:"POR",flag:"PT",count:20,specials:[1,13]},
+      {id:"cod",name:"RD Congo",   code:"COD",flag:"CD",count:20,specials:[1,13]},
+      {id:"uzb",name:"Uzbequistao",code:"UZB",flag:"UZ",count:20,specials:[1,13]},
+      {id:"col",name:"Colombia",   code:"COL",flag:"CO",count:20,specials:[1,13]},
     ]},
   { id:"L", name:"Grupo L", shortName:"L", color:"#F43F5E",
     teams:[
-      {id:"eng",name:"Inglaterra",code:"ENG",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",count:20,specials:[1,13]},
-      {id:"cro",name:"Croácia",code:"CRO",flag:"🇭🇷",count:20,specials:[1,13]},
-      {id:"gha",name:"Gana",code:"GHA",flag:"🇬🇭",count:20,specials:[1,13]},
-      {id:"pan",name:"Panamá",code:"PAN",flag:"🇵🇦",count:20,specials:[1,13]},
+      {id:"eng",name:"Inglaterra",code:"ENG",flag:"ENG",count:20,specials:[1,13]},
+      {id:"cro",name:"Croatia",   code:"CRO",flag:"HR", count:20,specials:[1,13]},
+      {id:"gha",name:"Gana",      code:"GHA",flag:"GH", count:20,specials:[1,13]},
+      {id:"pan",name:"Panama",    code:"PAN",flag:"PA", count:20,specials:[1,13]},
     ]},
 ];
+
+const FLAGS = {
+  MX:"🇲🇽",ZA:"🇿🇦",KR:"🇰🇷",CZ:"🇨🇿",
+  CA:"🇨🇦",BA:"🇧🇦",QA:"🇶🇦",CH:"🇨🇭",
+  BR:"🇧🇷",MA:"🇲🇦",HT:"🇭🇹",SCO:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  US:"🇺🇸",PY:"🇵🇾",AU:"🇦🇺",TR:"🇹🇷",
+  DE:"🇩🇪",CW:"🇨🇼",CI:"🇨🇮",EC:"🇪🇨",
+  NL:"🇳🇱",JP:"🇯🇵",SE:"🇸🇪",TN:"🇹🇳",
+  BE:"🇧🇪",EG:"🇪🇬",IR:"🇮🇷",NZ:"🇳🇿",
+  ES:"🇪🇸",CV:"🇨🇻",SA:"🇸🇦",UY:"🇺🇾",
+  FR:"🇫🇷",SN:"🇸🇳",IQ:"🇮🇶",NO:"🇳🇴",
+  AR:"🇦🇷",DZ:"🇩🇿",AT:"🇦🇹",JO:"🇯🇴",
+  PT:"🇵🇹",CD:"🇨🇩",UZ:"🇺🇿",CO:"🇨🇴",
+  ENG:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",HR:"🇭🇷",GH:"🇬🇭",PA:"🇵🇦",
+  Trophy:"🏆",Cup:"🥤",STAR:"⭐",
+};
+
+const f = (code) => FLAGS[code] || "🏳️";
 
 const CYCLE = ['missing','owned','duplicate'];
 const k = (t,n) => `${t}-${n}`;
 const TOTAL = GROUPS_DATA.reduce((a,g)=>a+g.teams.reduce((b,t)=>b+t.count,0),0);
 const SC = {
-  missing:{bg:'#1C2B3A',border:'#2D3F55',nc:'#4A6080'},
-  owned:{bg:'#0D2E1A',border:'#22C55E',nc:'#fff'},
+  missing:  {bg:'#1C2B3A',border:'#2D3F55',nc:'#4A6080'},
+  owned:    {bg:'#0D2E1A',border:'#22C55E',nc:'#fff'},
   duplicate:{bg:'#2E1E00',border:'#F59E0B',nc:'#fff'},
 };
 const SCS = {bg:'#1E1A2E',border:'#7C3AED',nc:'#C4B5FD'};
@@ -156,11 +174,11 @@ function TeamSection({team,group,stickers,onToggle}){
         border:`1px solid ${open?group.color+'55':'transparent'}`,
         borderRadius:10,padding:'10px 12px',
       }}>
-        <span style={{fontSize:22}}>{team.flag}</span>
+        <span style={{fontSize:22}}>{f(team.flag)}</span>
         <div style={{flex:1,textAlign:'left'}}>
           <div style={{color:'#E2E8F0',fontWeight:700,fontSize:13}}>
             {team.name}
-            <span style={{color:'#4A6080',fontWeight:500,marginLeft:6,fontSize:10}}>{team.code} 1–{team.count}</span>
+            <span style={{color:'#4A6080',fontWeight:500,marginLeft:6,fontSize:10}}>{team.code} 1-{team.count}</span>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
             <div style={{height:3,flex:1,background:'#2D3F55',borderRadius:2,overflow:'hidden'}}>
@@ -181,11 +199,11 @@ function TeamSection({team,group,stickers,onToggle}){
             {nums.map(n=>(
               <StickerBtn key={n} teamId={team.id} num={n} code={team.code}
                 state={stickers[k(team.id,n)]||'missing'}
-                onToggle={onToggle} isSpecial={team.specials?.includes(n)}/>
+                onToggle={onToggle} isSpecial={team.specials&&team.specials.includes(n)}/>
             ))}
           </div>
           <div style={{textAlign:'center',marginTop:8}}>
-            <span style={{fontSize:9,color:'#4A6080'}}>Toque: falta → tenho → duplicada</span>
+            <span style={{fontSize:9,color:'#4A6080'}}>Toque: falta - tenho - duplicada</span>
           </div>
         </div>
       )}
@@ -210,13 +228,15 @@ function GroupSection({group,stickers,onToggle}){
         <div style={{width:36,height:36,borderRadius:9,background:group.color+'22',
           border:`2px solid ${group.color}`,display:'flex',alignItems:'center',
           justifyContent:'center',fontWeight:900,fontSize:16,color:group.color,flexShrink:0}}>
-          {group.shortName}
- <div style={{color:'#F1F5F9',fontWeight:700,fontSize:15}}>{group.name}</div>
-<div style={{display:'flex',gap:4,marginTop:3}}>
-  {group.teams.map(t=>(
-    <span key={t.id} style={{fontSize:15}}>{t.flag}</span>
-  ))}
-</div>
+          {group.shortName==='STAR'?'⭐':group.shortName}
+        </div>
+        <div style={{flex:1,textAlign:'left'}}>
+          <div style={{color:'#F1F5F9',fontWeight:700,fontSize:15}}>{group.name}</div>
+          <div style={{display:'flex',gap:5,marginTop:3}}>
+            {group.teams.map(t=>(
+              <span key={t.id} style={{fontSize:16,lineHeight:1}}>{f(t.flag)}</span>
+            ))}
+          </div>
           <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
             <div style={{height:3,flex:1,background:'#2D3F55',borderRadius:2,overflow:'hidden'}}>
               <div style={{height:'100%',width:`${pct}%`,background:group.color,borderRadius:2}}/>
@@ -255,31 +275,27 @@ function MissingTab({stickers}){
         <span style={{color:'#F87171',fontWeight:800,fontSize:26}}>{total}</span>
       </div>
       {total===0
-        ?<div style={{textAlign:'center',padding:40}}><div style={{fontSize:48}}>🏆</div><div style={{color:'#22C55E',fontWeight:700,fontSize:18,marginTop:8}}>Álbum completo!</div></div>
+        ?<div style={{textAlign:'center',padding:40}}><div style={{fontSize:48}}>🏆</div><div style={{color:'#22C55E',fontWeight:700,fontSize:18,marginTop:8}}>Album completo!</div></div>
         :items.map(({group,team,missing})=>{
           const allNums=Array.from({length:team.count},(_,i)=>i+1);
           return(
             <div key={team.id} style={{marginBottom:8,background:'#141E2D',borderRadius:10,padding:'10px 12px'}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                <span style={{fontSize:18}}>{team.flag}</span>
+                <span style={{fontSize:18}}>{f(team.flag)}</span>
                 <span style={{color:'#CBD5E1',fontWeight:700,fontSize:13}}>{team.name}</span>
                 <span style={{fontSize:10,color:'#F87171',marginLeft:'auto',fontWeight:700}}>{missing.length} faltam</span>
               </div>
               <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                 {allNums.map(n=>{
                   const st=stickers[k(team.id,n)]||'missing';
-                  const isSpec=team.specials?.includes(n);
+                  const isSpec=team.specials&&team.specials.includes(n);
                   let bg,border,color;
                   if(st==='owned'){bg='#0D2E1A';border='#22C55E';color='#22C55E';}
                   else if(st==='duplicate'){bg='#2E1E00';border='#F59E0B';color='#F59E0B';}
                   else if(isSpec){bg='#1E1A2E';border='#7C3AED';color='#C4B5FD';}
                   else{bg='#1C2B3A';border='#F87171';color='#F87171';}
                   return(
-                    <span key={n} style={{
-                      background:bg,border:`1.5px solid ${border}`,
-                      borderRadius:6,padding:'2px 7px',
-                      fontSize:11,fontWeight:700,color,
-                    }}>{team.code} {n}</span>
+                    <span key={n} style={{background:bg,border:`1.5px solid ${border}`,borderRadius:6,padding:'2px 7px',fontSize:11,fontWeight:700,color}}>{team.code} {n}</span>
                   );
                 })}
               </div>
@@ -315,20 +331,19 @@ function DupTab({stickers}){
             <div style={{background:'#141E2D',borderRadius:10,padding:'10px 12px',marginBottom:10}}>
               <div style={{color:'#64748B',fontSize:10,marginBottom:6,letterSpacing:1}}>LISTA PARA COMPARTILHAR</div>
               <div style={{color:'#CBD5E1',fontSize:11,fontFamily:'monospace',lineHeight:1.7}}>
-                {items.map(({team,nums})=><div key={team.id}>{team.flag} {team.code}: {nums.join(', ')}</div>)}
+                {items.map(({team,nums})=><div key={team.id}>{f(team.flag)} {team.code}: {nums.join(', ')}</div>)}
               </div>
             </div>
-            {items.map(({group,team,nums})=>(
+            {items.map(({team,nums})=>(
               <div key={team.id} style={{marginBottom:6,background:'#141E2D',borderRadius:10,padding:'10px 12px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                  <span style={{fontSize:18}}>{team.flag}</span>
+                  <span style={{fontSize:18}}>{f(team.flag)}</span>
                   <span style={{color:'#CBD5E1',fontWeight:700,fontSize:13}}>{team.name}</span>
                   <span style={{fontSize:11,color:'#F59E0B',marginLeft:'auto',fontWeight:700}}>{nums.length}×</span>
                 </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                   {nums.map(n=>(
-                    <span key={n} style={{background:'#2E1E00',border:'1.5px solid #F59E0B',borderRadius:6,
-                      padding:'2px 7px',fontSize:11,color:'#F59E0B',fontWeight:700}}>{team.code} {n}</span>
+                    <span key={n} style={{background:'#2E1E00',border:'1.5px solid #F59E0B',borderRadius:6,padding:'2px 7px',fontSize:11,color:'#F59E0B',fontWeight:700}}>{team.code} {n}</span>
                   ))}
                 </div>
               </div>
@@ -381,7 +396,9 @@ function StatsTab({stickers}){
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
               <div style={{width:26,height:26,borderRadius:7,background:group.color+'22',
                 border:`2px solid ${group.color}`,display:'flex',alignItems:'center',justifyContent:'center',
-                fontWeight:900,fontSize:13,color:group.color,flexShrink:0}}>{group.shortName}</div>
+                fontWeight:900,fontSize:13,color:group.color,flexShrink:0}}>
+                {group.shortName==='STAR'?'⭐':group.shortName}
+              </div>
               <span style={{flex:1,color:'#CBD5E1',fontSize:12,fontWeight:700}}>{group.name}</span>
               <span style={{fontSize:12,fontWeight:700}}>
                 <span style={{color:'#22C55E'}}>{o}</span>
@@ -401,10 +418,10 @@ function StatsTab({stickers}){
 }
 
 const NAV=[
-  {id:'album',label:'Álbum',icon:'📖'},
+  {id:'album',  label:'Album', icon:'📖'},
   {id:'missing',label:'Faltam',icon:'🔍'},
-  {id:'dups',label:'Trocas',icon:'🔄'},
-  {id:'stats',label:'Stats',icon:'📊'},
+  {id:'dups',   label:'Trocas',icon:'🔄'},
+  {id:'stats',  label:'Stats', icon:'📊'},
 ];
 
 function App(){
@@ -462,8 +479,8 @@ function App(){
         </div>
       </div>
 
-      <div style={{display:'flex',gap:14,padding:'7px 14px',background:'#0F1A28',borderBottom:'1px solid #1A2535',justifyContent:'center'}}>
-        {[['#2D3F55','Falta','#4A6080'],['#22C55E','Tenho ✓','#22C55E'],['#F59E0B','Duplic. 2×','#F59E0B'],['#7C3AED','Especial ✦','#A78BFA']].map(([color,label,tc])=>(
+      <div style={{display:'flex',gap:12,padding:'7px 14px',background:'#0F1A28',borderBottom:'1px solid #1A2535',justifyContent:'center'}}>
+        {[['#2D3F55','Falta','#4A6080'],['#22C55E','Tenho','#22C55E'],['#F59E0B','Duplic.','#F59E0B'],['#7C3AED','Especial','#A78BFA']].map(([color,label,tc])=>(
           <div key={label} style={{display:'flex',alignItems:'center',gap:3}}>
             <div style={{width:9,height:9,borderRadius:2,border:`2px solid ${color}`,background:color+'33'}}/>
             <span style={{fontSize:9,color:tc,fontWeight:600}}>{label}</span>
@@ -476,27 +493,21 @@ function App(){
           ?<div style={{padding:'0 12px 20px'}}>
             <div style={{position:'relative',marginBottom:12}}>
               <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:16,pointerEvents:'none'}}>🔍</span>
-              <input
-                type="text"
-                placeholder="Buscar seleção... (ex: Brasil, BRA, Grupo C)"
-                value={search}
-                onChange={e=>setSearch(e.target.value)}
-                style={{
-                  width:'100%',background:'#17243A',border:'1px solid #2D3F55',
+              <input type="text"
+                placeholder="Buscar selecao... (ex: Brasil, BRA, Grupo C)"
+                value={search} onChange={e=>setSearch(e.target.value)}
+                style={{width:'100%',background:'#17243A',border:'1px solid #2D3F55',
                   borderRadius:10,padding:'10px 36px 10px 38px',
-                  color:'#E2E8F0',fontSize:13,fontFamily:'Barlow Condensed,sans-serif',
-                  outline:'none',
-                }}
+                  color:'#E2E8F0',fontSize:13,outline:'none'}}
               />
               {search&&(
                 <button onClick={()=>setSearch('')} style={{
                   position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',
-                  background:'none',border:'none',color:'#4A6080',fontSize:18,lineHeight:1,padding:2,
-                }}>×</button>
+                  background:'none',border:'none',color:'#4A6080',fontSize:18,lineHeight:1,padding:2}}>×</button>
               )}
             </div>
             {filteredGroups.length===0
-              ?<div style={{textAlign:'center',padding:'40px 0',color:'#4A6080',fontSize:13}}>Nenhuma seleção encontrada</div>
+              ?<div style={{textAlign:'center',padding:'40px 0',color:'#4A6080',fontSize:13}}>Nenhuma selecao encontrada</div>
               :filteredGroups.map(g=><GroupSection key={g.id} group={g} stickers={stickers} onToggle={toggle}/>)
             }
           </div>
@@ -510,8 +521,7 @@ function App(){
         {NAV.map(item=>(
           <button key={item.id} onClick={()=>setTab(item.id)} style={{
             flex:1,display:'flex',flexDirection:'column',alignItems:'center',
-            gap:2,border:'none',background:'transparent',padding:'4px 0',
-          }}>
+            gap:2,border:'none',background:'transparent',padding:'4px 0'}}>
             <span style={{fontSize:19}}>{item.icon}</span>
             <span style={{fontSize:10,fontWeight:tab===item.id?700:500,
               color:tab===item.id?'#22C55E':'#4A6080',
