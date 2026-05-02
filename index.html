@@ -143,9 +143,9 @@ const TOTAL = GROUPS_DATA.reduce((a,g)=>a+g.teams.reduce((b,t)=>b+t.count,0),0);
 // Theme definitions
 const DARK = {
   bg:'#0D1421', card:'#141E2D', card2:'#17243A', card3:'#111B27',
-  header:'linear-gradient(135deg,#7DD6D1,#A8E6E2)',
-  headerBorder:'#5BC4BE', headerText:'#0D3B38', headerSub:'#1A5C58',
-  headerPct:'rgba(255,255,255,0.35)',
+  header:'linear-gradient(135deg,#0D1F3C,#1A3A5C)',
+  headerBorder:'#1E2D3F', headerText:'#F1F5F9', headerSub:'#64748B',
+  headerPct:'#1E3050',
   nav:'#0F1A28', navBorder:'#1E2D3F',
   navActive:'#22C55E', navInactive:'#4A6080',
   text:'#E2E8F0', textSub:'#94A3B8', textMuted:'#4A6080',
@@ -525,7 +525,7 @@ function App(){
   const [tab,setTab]=useState('album');
   const [search,setSearch]=useState('');
   const [darkMode,setDarkMode]=useState(()=>{
-    try{return localStorage.getItem('panini_dark')!=='false'}catch{return true;}
+    try{return localStorage.getItem('panini_dark')==='true'}catch{return false;}
   });
 
   const T = darkMode ? DARK : LIGHT;
