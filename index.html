@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="Panini 2026"/>
   <meta name="theme-color" content="#0D1421"/>
-  <title>Copa 2026 Panini - Beta v2 </title>
+  <title>Copa 2026 Panini</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;900&display=swap" rel="stylesheet"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -140,6 +140,7 @@ const CYCLE = ['missing','owned','duplicate'];
 const k = (t,n) => `${t}-${n}`;
 const TOTAL = GROUPS_DATA.reduce((a,g)=>a+g.teams.reduce((b,t)=>b+t.count,0),0);
 
+// Theme definitions
 const DARK = {
   bg:'#0D1421', card:'#141E2D', card2:'#17243A', card3:'#111B27',
   header:'linear-gradient(135deg,#7DD6D1,#A8E6E2)',
@@ -175,7 +176,7 @@ const LIGHT = {
   inputBg:'#FFFFFF', inputBorder:'#A8D8D4',
 };
 
-function Confetti(){
+function Confetti({color}){
   const pieces = Array.from({length:12},(_,i)=>i);
   return(
     <div style={{position:'absolute',top:0,left:0,right:0,pointerEvents:'none',overflow:'hidden',height:140}}>
@@ -262,7 +263,7 @@ function TeamSection({team,group,stickers,onToggle,T}){
   );
 }
 
-function GroupSection({group,stickers,onToggle,T}){
+function GroupSection({group,stickers,onToggle,T,onComplete}){
   const [open,setOpen]=useState(false);
   const [celebrate,setCelebrate]=useState(false);
   const prevComplete=useRef(false);
@@ -283,7 +284,7 @@ function GroupSection({group,stickers,onToggle,T}){
 
   return(
     <div style={{marginBottom:8,position:'relative'}} className={celebrate?'celebrate':''}>
-      {celebrate&&<Confetti/>}
+      {celebrate&&<Confetti color={group.color}/>}
       <button onClick={()=>setOpen(o=>!o)} style={{
         width:'100%',display:'flex',alignItems:'center',gap:10,
         background:open?T.groupBgOpen:T.groupBg,
@@ -565,6 +566,7 @@ function App(){
   return(
     <div style={{minHeight:'100vh',background:T.bg,display:'flex',flexDirection:'column',maxWidth:430,margin:'0 auto'}}>
 
+      {/* HEADER */}
       <div style={{background:T.header,padding:'14px 16px 10px',
         borderBottom:`1px solid ${T.headerBorder}`,position:'sticky',top:0,zIndex:10}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -576,7 +578,7 @@ function App(){
             <button onClick={()=>setDarkMode(d=>!d)} style={{
               background:'rgba(255,255,255,0.3)',border:'none',borderRadius:8,
               padding:'6px 9px',fontSize:16,lineHeight:1,color:T.headerText}}>
-              {darkMode?'☀️- Modo Claro':'🌙- Modo Escuro'}
+              {darkMode?'☀️':'🌙'}
             </button>
             <div style={{background:T.headerPct,borderRadius:10,padding:'7px 12px',textAlign:'center'}}>
               <div style={{fontSize:20,fontWeight:900,color:T.headerText,lineHeight:1}}>{pct}%</div>
@@ -589,6 +591,7 @@ function App(){
         </div>
       </div>
 
+      {/* LEGEND */}
       <div style={{display:'flex',gap:12,padding:'7px 14px',background:T.nav,borderBottom:`1px solid ${T.navBorder}`,justifyContent:'center'}}>
         {[['#2D3F55','Falta',T.navInactive],['#22C55E','Tenho','#22C55E'],['#F59E0B','Duplic.','#F59E0B'],['#7C3AED','Especial','#A78BFA']].map(([color,label,tc])=>(
           <div key={label} style={{display:'flex',alignItems:'center',gap:3}}>
@@ -598,6 +601,7 @@ function App(){
         ))}
       </div>
 
+      {/* CONTENT */}
       <div style={{flex:1,overflowY:'auto',paddingTop:10}}>
         {tab==='album'
           ?<div style={{padding:'0 12px 20px'}}>
@@ -625,6 +629,7 @@ function App(){
         }
       </div>
 
+      {/* BOTTOM NAV — turquesa */}
       <div style={{display:'flex',background:T.nav,borderTop:`1px solid ${T.navBorder}`,padding:'6px 0 8px',position:'sticky',bottom:0}}>
         {NAV.map(item=>(
           <button key={item.id} onClick={()=>setTab(item.id)} style={{
