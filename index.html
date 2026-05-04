@@ -562,17 +562,35 @@ for(const g of GROUPS_DATA)
 function ScanTab({stickers,onToggle,T}){
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const inputRef = useRef(null);
+  const [mode, setMode] = useState('manual'); // 'manual' | 'camera'
+  const [manualInput, setManualInput] = useState('');
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [found, setFound] = useState(null); // {code, teamId, num, team, group}
+  const [found, setFound] = useState(null);
   const [msg, setMsg] = useState('');
   const [camError, setCamError] = useState('');
+  const [confirmed, setConfirmed] = useState('');
+
+  // Manual lookup
+  const manualResult = useMemo(()=>{
+    const q = manualInput.toUpperCase().trim().replace(/\s+/,' ');
+    if(!q) return null;
+    if(STICKER_MAP[q]) return {code:q,...STICKER_MAP[q]};
+    // try adding space between letters and numbers: "PAN8" -> "PAN 8"
+    const m = q.match(/^([A-Z]{2,4})\s*(\d{1,2})$/);
+    if(m){
+      const attempt = `${m[1]} ${parseInt(m[2])}`;
+      if(STICKER_MAP[attempt]) return {code:attempt,...STICKER_MAP[attempt]};
+    }
+    return null;
+  },[manualInput]);
 
   const startCamera = useCallback(async ()=>{
     setCamError('');
     try{
       const stream = await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
+        video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}
       });
       if(videoRef.current){
         videoRef.current.srcObject = stream;
@@ -580,14 +598,14 @@ function ScanTab({stickers,onToggle,T}){
         setScanning(true);
       }
     }catch(e){
-      setCamError('Nao foi possivel acessar a camera. Verifique as permissoes.');
+      setCamError('Nao foi possivel acessar a camera. Verifique as permissoes no Safari.');
     }
   },[]);
 
   const stopCamera = useCallback(()=>{
     if(videoRef.current && videoRef.current.srcObject){
       videoRef.current.srcObject.getTracks().forEach(t=>t.stop());
-      videoRef.current.srcObject = null;
+      videoRef.current.srcObject=null;
     }
     setScanning(false);
     setFound(null);
@@ -597,149 +615,192 @@ function ScanTab({stickers,onToggle,T}){
   useEffect(()=>()=>stopCamera(),[]);
 
   const capture = useCallback(async ()=>{
-    if(!videoRef.current || !canvasRef.current) return;
+    if(!videoRef.current||!canvasRef.current) return;
     setProcessing(true);
     setFound(null);
-    setMsg('Lendo figurinha...');
-    const v = videoRef.current;
-    const c = canvasRef.current;
-    c.width = v.videoWidth;
-    c.height = v.videoHeight;
-    c.getContext('2d').drawImage(v,0,0);
+    setMsg('Lendo...');
+    const v=videoRef.current;
+    const c=canvasRef.current;
+    const W=v.videoWidth, H=v.videoHeight;
+    // Crop top-right 30% x 20% — that's where the code always is
+    const cx=Math.floor(W*0.6), cy=0;
+    const cw=Math.floor(W*0.4), ch=Math.floor(H*0.22);
+    c.width=cw*2; c.height=ch*2; // upscale 2x
+    const ctx=c.getContext('2d');
+    ctx.imageSmoothingEnabled=false;
+    // Draw cropped region scaled up
+    ctx.drawImage(v, cx,cy,cw,ch, 0,0,cw*2,ch*2);
+    // High contrast filter
+    ctx.filter='contrast(2) brightness(1.3) grayscale(1)';
+    ctx.drawImage(c,0,0);
+    ctx.filter='none';
     try{
       const {data:{text}} = await Tesseract.recognize(c,'eng',{
         tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ',
+        tessedit_pageseg_mode:'7', // single line
       });
-      // Parse "CODE NUM" patterns from OCR text
-      const clean = text.toUpperCase().replace(/[^A-Z0-9\s]/g,'');
-      const matches = clean.match(/([A-Z]{2,4})\s*(\d{1,2})/g)||[];
-      let hit = null;
-      for(const m of matches){
-        const normalized = m.replace(/\s+/,' ').trim();
-        if(STICKER_MAP[normalized]){hit=normalized;break;}
-        // try without space
-        const parts = m.match(/([A-Z]{2,4})(\d{1,2})/);
-        if(parts){
-          const attempt = `${parts[1]} ${parseInt(parts[2])}`;
-          if(STICKER_MAP[attempt]){hit=attempt;break;}
+      const clean=text.toUpperCase().replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/,' ').trim();
+      let hit=null;
+      const parts=clean.match(/([A-Z]{2,4})\s*(\d{1,2})/g)||[];
+      for(const p of parts){
+        const norm=p.replace(/\s+/,' ').trim();
+        if(STICKER_MAP[norm]){hit=norm;break;}
+        const m2=p.match(/([A-Z]{2,4})(\d{1,2})/);
+        if(m2){
+          const att=`${m2[1]} ${parseInt(m2[2])}`;
+          if(STICKER_MAP[att]){hit=att;break;}
         }
       }
-      if(hit){
-        setFound({code:hit,...STICKER_MAP[hit]});
-        setMsg('');
-      } else {
-        setMsg('Nao encontrei o codigo. Tente novamente mais perto.');
-      }
-    }catch(e){
-      setMsg('Erro ao processar imagem. Tente novamente.');
-    }
+      if(hit){setFound({code:hit,...STICKER_MAP[hit]});setMsg('');}
+      else setMsg('Nao reconheci. Aponte para o canto superior direito da figurinha e tente de novo.');
+    }catch(e){setMsg('Erro. Tente novamente.');}
     setProcessing(false);
   },[]);
 
-  const confirmMark = useCallback((state)=>{
-    if(!found) return;
-    const sk = k(found.teamId, found.num);
-    // Force to desired state
-    onToggle(sk); // cycle once
-    // If we need to cycle again to reach the right state, do it
+  const markFound = useCallback((targetState, src)=>{
+    const item = src || found;
+    if(!item) return;
+    const sk=k(item.teamId,item.num);
+    const cur=stickers[sk]||'missing';
+    // Cycle until we reach targetState
+    let cycles=0;
+    let s=cur;
+    while(s!==targetState && cycles<3){
+      onToggle(sk);
+      s=CYCLE[(CYCLE.indexOf(s)+1)%3];
+      cycles++;
+    }
     setFound(null);
-    setMsg(`Marcada como "${state==='owned'?'Tenho':'Duplicada'}"!`);
-    setTimeout(()=>setMsg(''),2000);
-  },[found,onToggle]);
+    setManualInput('');
+    setConfirmed(`${item.code} marcada!`);
+    setTimeout(()=>setConfirmed(''),2000);
+    if(inputRef.current) inputRef.current.focus();
+  },[found,stickers,onToggle]);
 
-  const curState = found ? (stickers[k(found.teamId,found.num)]||'missing') : null;
+  const ResultCard = ({item})=>{
+    const curState=stickers[k(item.teamId,item.num)]||'missing';
+    return(
+      <div style={{background:T.card,border:`2px solid #22C55E`,borderRadius:12,padding:'14px',marginBottom:12}}>
+        <div style={{color:T.textMuted,fontSize:10,marginBottom:6,letterSpacing:1}}>FIGURINHA ENCONTRADA</div>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+          <span style={{fontSize:32}}>{f(item.team.flag)}</span>
+          <div>
+            <div style={{color:T.text,fontWeight:800,fontSize:20}}>{item.code}</div>
+            <div style={{color:T.textSub,fontSize:12}}>{item.team.name} · {item.group.name}</div>
+            <div style={{fontSize:11,fontWeight:700,marginTop:2,
+              color:curState==='owned'?'#22C55E':curState==='duplicate'?'#F59E0B':'#F87171'}}>
+              {curState==='owned'?'✓ Ja tenho':curState==='duplicate'?'2× Duplicada':'Faltando'}
+            </div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>markFound('owned',item)} style={{flex:1,background:'#0D2E1A',border:'2px solid #22C55E',borderRadius:10,padding:'10px',color:'#22C55E',fontWeight:800,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>✓ Tenho</button>
+          <button onClick={()=>markFound('duplicate',item)} style={{flex:1,background:'#2E1E00',border:'2px solid #F59E0B',borderRadius:10,padding:'10px',color:'#F59E0B',fontWeight:800,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>2× Duplic.</button>
+          <button onClick={()=>{setFound(null);setManualInput('');}} style={{flex:1,background:T.card2,border:`1px solid ${T.bar}`,borderRadius:10,padding:'10px',color:T.textSub,fontWeight:700,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>✕</button>
+        </div>
+      </div>
+    );
+  };
 
   return(
     <div style={{padding:'0 12px 20px'}}>
-      <div style={{background:T.card2,borderRadius:12,padding:'12px 14px',marginBottom:12}}>
-        <div style={{color:T.text,fontWeight:700,fontSize:14,marginBottom:4}}>Scanner de Figurinhas</div>
-        <div style={{color:T.textSub,fontSize:11,lineHeight:1.5}}>
-          Aponte a camera para o codigo impresso na figurinha (ex: BRA 7). Mantenha firme e clique em Capturar.
-        </div>
+
+      {/* Mode toggle */}
+      <div style={{display:'flex',gap:4,marginBottom:12,background:T.card2,borderRadius:10,padding:4}}>
+        {[['manual','⌨️ Digitar'],['camera','📷 Camera']].map(([m,label])=>(
+          <button key={m} onClick={()=>{setMode(m);if(m==='camera')startCamera();else stopCamera();}} style={{
+            flex:1,border:'none',borderRadius:8,padding:'9px',fontWeight:700,fontSize:13,
+            fontFamily:'Barlow Condensed,sans-serif',
+            background:mode===m?(T===DARK?'#1E3050':'#fff'):T.card2,
+            color:mode===m?T.text:T.textMuted,
+          }}>{label}</button>
+        ))}
       </div>
 
-      {camError&&<div style={{background:'#2E1A1A',border:'1px solid #F87171',borderRadius:10,padding:'12px 14px',marginBottom:12,color:'#F87171',fontSize:12}}>{camError}</div>}
+      {confirmed&&<div style={{background:'#0D2E1A',border:'1px solid #22C55E',borderRadius:10,padding:'10px 14px',marginBottom:12,color:'#22C55E',fontSize:14,fontWeight:700,textAlign:'center'}}>✓ {confirmed}</div>}
 
-      {/* Camera preview */}
-      <div style={{position:'relative',background:'#000',borderRadius:14,overflow:'hidden',marginBottom:12,aspectRatio:'16/9'}}>
-        <video ref={videoRef} style={{width:'100%',height:'100%',objectFit:'cover',display:scanning?'block':'none'}} playsInline muted/>
-        <canvas ref={canvasRef} style={{display:'none'}}/>
-        {!scanning&&(
-          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10}}>
-            <span style={{fontSize:48}}>📷</span>
-            <span style={{color:'#94A3B8',fontSize:13}}>Camera desligada</span>
-          </div>
-        )}
-        {/* Viewfinder overlay */}
-        {scanning&&(
-          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
-            <div style={{width:200,height:80,border:'2px solid rgba(125,214,209,0.8)',borderRadius:8,boxShadow:'0 0 0 1000px rgba(0,0,0,0.35)'}}>
-              <div style={{position:'absolute',top:-1,left:-1,width:16,height:16,borderTop:'3px solid #7DD6D1',borderLeft:'3px solid #7DD6D1',borderRadius:'4px 0 0 0'}}/>
-              <div style={{position:'absolute',top:-1,right:-1,width:16,height:16,borderTop:'3px solid #7DD6D1',borderRight:'3px solid #7DD6D1',borderRadius:'0 4px 0 0'}}/>
-              <div style={{position:'absolute',bottom:-1,left:-1,width:16,height:16,borderBottom:'3px solid #7DD6D1',borderLeft:'3px solid #7DD6D1',borderRadius:'0 0 0 4px'}}/>
-              <div style={{position:'absolute',bottom:-1,right:-1,width:16,height:16,borderBottom:'3px solid #7DD6D1',borderRight:'3px solid #7DD6D1',borderRadius:'0 0 4px 0'}}/>
+      {/* MANUAL MODE */}
+      {mode==='manual'&&(
+        <>
+          <div style={{background:T.card2,borderRadius:12,padding:'12px 14px',marginBottom:12}}>
+            <div style={{color:T.textMuted,fontSize:10,marginBottom:8,letterSpacing:1}}>DIGITAR CODIGO DA FIGURINHA</div>
+            <div style={{position:'relative'}}>
+              <input
+                ref={inputRef}
+                type="text"
+                autoFocus
+                placeholder="Ex: PAN 8, BRA 13, KSA 1..."
+                value={manualInput}
+                onChange={e=>setManualInput(e.target.value.toUpperCase())}
+                onKeyDown={e=>{
+                  if(e.key==='Enter'&&manualResult) markFound('owned',manualResult);
+                }}
+                style={{
+                  width:'100%',background:T.inputBg,border:`2px solid ${manualResult?'#22C55E':T.inputBorder}`,
+                  borderRadius:10,padding:'12px 40px 12px 14px',
+                  color:T.text,fontSize:18,fontWeight:700,outline:'none',
+                  fontFamily:'Barlow Condensed,monospace',letterSpacing:2,
+                }}
+              />
+              {manualInput&&<button onClick={()=>setManualInput('')} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.textMuted,fontSize:18,padding:2}}>×</button>}
+            </div>
+            <div style={{color:T.textMuted,fontSize:10,marginTop:6}}>
+              Vire a figurinha e digite o codigo do canto superior direito
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div style={{display:'flex',gap:8,marginBottom:12}}>
-        {!scanning
-          ?<button onClick={startCamera} style={{flex:1,background:'linear-gradient(135deg,#7DD6D1,#A8E6E2)',border:'none',borderRadius:10,padding:'12px',color:'#0D3B38',fontWeight:800,fontSize:14,fontFamily:'Barlow Condensed,sans-serif'}}>
-            📷 Ligar Camera
-          </button>
-          :<>
-            <button onClick={capture} disabled={processing} style={{flex:2,background:processing?'#2D3F55':'#22C55E',border:'none',borderRadius:10,padding:'12px',color:'#fff',fontWeight:800,fontSize:14,fontFamily:'Barlow Condensed,sans-serif',opacity:processing?0.7:1}}>
-              {processing?'Processando...':'⚡ Capturar'}
-            </button>
-            <button onClick={stopCamera} style={{flex:1,background:T.card,border:`1px solid ${T.bar}`,borderRadius:10,padding:'12px',color:T.textSub,fontWeight:700,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>
-              Parar
-            </button>
-          </>
-        }
-      </div>
-
-      {/* Status message */}
-      {msg&&<div style={{background:T.card2,borderRadius:10,padding:'10px 14px',marginBottom:12,color:T.textSub,fontSize:13,textAlign:'center'}}>{msg}</div>}
-
-      {/* Found sticker confirmation */}
-      {found&&(
-        <div style={{background:T.card,border:`2px solid #22C55E`,borderRadius:12,padding:'14px',marginBottom:12}}>
-          <div style={{color:T.textSub,fontSize:11,marginBottom:6}}>FIGURINHA ENCONTRADA</div>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-            <span style={{fontSize:32}}>{f(found.team.flag)}</span>
-            <div>
-              <div style={{color:T.text,fontWeight:800,fontSize:18}}>{found.code}</div>
-              <div style={{color:T.textSub,fontSize:12}}>{found.team.name} · {found.group.name}</div>
-              <div style={{color:curState==='owned'?'#22C55E':curState==='duplicate'?'#F59E0B':'#F87171',fontSize:11,fontWeight:700,marginTop:2}}>
-                Status atual: {curState==='owned'?'✓ Tenho':curState==='duplicate'?'2× Duplicada':'Faltando'}
-              </div>
+          {manualResult&&<ResultCard item={manualResult}/>}
+          {manualInput.length>=2&&!manualResult&&(
+            <div style={{background:T.card2,borderRadius:10,padding:'10px 14px',color:T.textMuted,fontSize:12,textAlign:'center'}}>
+              Codigo nao encontrado — verifique o codigo da figurinha
             </div>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button onClick={()=>confirmMark('owned')} style={{flex:1,background:'#0D2E1A',border:'2px solid #22C55E',borderRadius:10,padding:'10px',color:'#22C55E',fontWeight:800,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>
-              ✓ Tenho
-            </button>
-            <button onClick={()=>confirmMark('duplicate')} style={{flex:1,background:'#2E1E00',border:'2px solid #F59E0B',borderRadius:10,padding:'10px',color:'#F59E0B',fontWeight:800,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>
-              2× Duplicada
-            </button>
-            <button onClick={()=>setFound(null)} style={{flex:1,background:T.card2,border:`1px solid ${T.bar}`,borderRadius:10,padding:'10px',color:T.textSub,fontWeight:700,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>
-              Ignorar
-            </button>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
-      <div style={{background:T.card2,borderRadius:10,padding:'10px 12px'}}>
-        <div style={{color:T.textMuted,fontSize:10,marginBottom:4,letterSpacing:1}}>DICAS</div>
-        <div style={{color:T.textSub,fontSize:11,lineHeight:1.8}}>
-          • Aponte para o codigo (ex: KSA 3, BRA 13){'\n'}
-          • Boa iluminacao melhora o resultado{'\n'}
-          • Mantenha a camera estavel ao capturar{'\n'}
-          • Se errar, toque na figurinha no Album para corrigir
-        </div>
-      </div>
+      {/* CAMERA MODE */}
+      {mode==='camera'&&(
+        <>
+          {camError&&<div style={{background:'#2E1A1A',border:'1px solid #F87171',borderRadius:10,padding:'12px',marginBottom:12,color:'#F87171',fontSize:12}}>{camError}</div>}
+          <div style={{position:'relative',background:'#000',borderRadius:14,overflow:'hidden',marginBottom:12,aspectRatio:'4/3'}}>
+            <video ref={videoRef} style={{width:'100%',height:'100%',objectFit:'cover',display:scanning?'block':'none'}} playsInline muted/>
+            <canvas ref={canvasRef} style={{display:'none'}}/>
+            {!scanning&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10}}><span style={{fontSize:48}}>📷</span><span style={{color:'#94A3B8',fontSize:13}}>Camera desligada</span></div>}
+            {scanning&&(
+              <div style={{position:'absolute',inset:0,pointerEvents:'none'}}>
+                {/* Highlight top-right where code is */}
+                <div style={{position:'absolute',top:'4%',right:'2%',width:'36%',height:'20%',border:'2px solid #7DD6D1',borderRadius:6,boxShadow:'0 0 0 2000px rgba(0,0,0,0.4)'}}>
+                  <div style={{position:'absolute',top:-1,left:-1,width:12,height:12,borderTop:'3px solid #7DD6D1',borderLeft:'3px solid #7DD6D1'}}/>
+                  <div style={{position:'absolute',top:-1,right:-1,width:12,height:12,borderTop:'3px solid #7DD6D1',borderRight:'3px solid #7DD6D1'}}/>
+                  <div style={{position:'absolute',bottom:-1,left:-1,width:12,height:12,borderBottom:'3px solid #7DD6D1',borderLeft:'3px solid #7DD6D1'}}/>
+                  <div style={{position:'absolute',bottom:-1,right:-1,width:12,height:12,borderBottom:'3px solid #7DD6D1',borderRight:'3px solid #7DD6D1'}}/>
+                </div>
+                <div style={{position:'absolute',top:'25%',right:'2%',width:'36%',textAlign:'center'}}>
+                  <span style={{background:'rgba(0,0,0,0.6)',color:'#7DD6D1',fontSize:10,padding:'2px 6px',borderRadius:4}}>codigo aqui</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{display:'flex',gap:8,marginBottom:12}}>
+            {!scanning
+              ?<button onClick={startCamera} style={{flex:1,background:'linear-gradient(135deg,#7DD6D1,#A8E6E2)',border:'none',borderRadius:10,padding:'12px',color:'#0D3B38',fontWeight:800,fontSize:14,fontFamily:'Barlow Condensed,sans-serif'}}>📷 Ligar Camera</button>
+              :<>
+                <button onClick={capture} disabled={processing} style={{flex:2,background:processing?'#2D3F55':'#22C55E',border:'none',borderRadius:10,padding:'12px',color:'#fff',fontWeight:800,fontSize:14,fontFamily:'Barlow Condensed,sans-serif',opacity:processing?0.7:1}}>
+                  {processing?'Lendo...':'⚡ Capturar'}
+                </button>
+                <button onClick={stopCamera} style={{flex:1,background:T.card,border:`1px solid ${T.bar}`,borderRadius:10,padding:'12px',color:T.textSub,fontWeight:700,fontSize:13,fontFamily:'Barlow Condensed,sans-serif'}}>Parar</button>
+              </>
+            }
+          </div>
+          {msg&&<div style={{background:T.card2,borderRadius:10,padding:'10px 14px',marginBottom:12,color:T.textSub,fontSize:12,textAlign:'center'}}>{msg}</div>}
+          {found&&<ResultCard item={found}/>}
+          <div style={{background:T.card2,borderRadius:10,padding:'10px 12px'}}>
+            <div style={{color:T.textMuted,fontSize:10,marginBottom:4,letterSpacing:1}}>DICA</div>
+            <div style={{color:T.textSub,fontSize:11,lineHeight:1.7}}>
+              Vire a figurinha e aponte a camera para o canto superior direito (ex: PAN 8). Boa iluminacao ajuda muito.
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
