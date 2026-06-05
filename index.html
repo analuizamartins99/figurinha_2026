@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -32,7 +31,7 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 const GROUPS_DATA = [
   { id:"intro", name:"Especiais / Intro", shortName:"STAR", color:"#F59E0B",
     teams:[
-      {id:"fwc",name:"FIFA World Cup",code:"FWC",flag:"Trophy",count:19,specials:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]},
+      {id:"fwc",name:"FIFA World Cup",code:"FWC",flag:"Trophy",count:20,startAt:0,specials:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]},
       {id:"cc", name:"Coca-Cola",      code:"CC", flag:"Cup",   count:14,specials:[1,2,3,4,5,6,7,8,9,10,11,12,13,14]},
     ]},
   { id:"A", name:"Grupo A", shortName:"A", color:"#22C55E",
@@ -231,7 +230,7 @@ function StickerBtn({teamId,num,code,state,count,onToggle,onCount,isSpecial,T}){
 
 function TeamSection({team,group,stickers,dupCounts,onToggle,onCount,T}){
   const [open,setOpen]=useState(false);
-  const nums=Array.from({length:team.count},(_,i)=>i+1);
+  const nums=Array.from({length:team.count},(_,i)=>(team.startAt!==undefined?team.startAt:1)+i);
   const owned=nums.filter(n=>stickers[k(team.id,n)]==='owned').length;
   const dupNums=nums.filter(n=>stickers[k(team.id,n)]==='duplicate');
   const haveInAlbum=owned+dupNums.length;
@@ -288,7 +287,7 @@ function GroupSection({group,stickers,dupCounts,onToggle,onCount,T,onComplete}){
   const [open,setOpen]=useState(false);
   const [celebrate,setCelebrate]=useState(false);
   const prevComplete=useRef(false);
-  const allKeys=group.teams.flatMap(t=>Array.from({length:t.count},(_,i)=>k(t.id,i+1)));
+  const allKeys=group.teams.flatMap(t=>Array.from({length:t.count},(_,i)=>k(t.id,(t.startAt!==undefined?t.startAt:1)+i)));
   const owned=allKeys.filter(x=>stickers[x]==='owned').length;
   const dup=allKeys.filter(x=>stickers[x]==='duplicate').length;
   const total=allKeys.length;
@@ -353,7 +352,7 @@ function MissingTab({stickers,T}){
     const r=[];
     for(const g of GROUPS_DATA)
       for(const t of g.teams){
-        const missing=Array.from({length:t.count},(_,i)=>i+1).filter(n=>!stickers[k(t.id,n)]||stickers[k(t.id,n)]==='missing');
+        const missing=Array.from({length:t.count},(_,i)=>(t.startAt!==undefined?t.startAt:1)+i).filter(n=>!stickers[k(t.id,n)]||stickers[k(t.id,n)]==='missing');
         if(missing.length)r.push({group:g,team:t,missing});
       }
     return r;
@@ -407,7 +406,7 @@ function MissingTab({stickers,T}){
         :filtered.length===0
         ?<div style={{textAlign:'center',padding:30,color:T.textMuted,fontSize:13}}>Nenhuma selecao encontrada</div>
         :filtered.map(({group,team,missing})=>{
-          const allNums=Array.from({length:team.count},(_,i)=>i+1);
+          const allNums=Array.from({length:team.count},(_,i)=>(team.startAt!==undefined?team.startAt:1)+i);
           return(
             <div key={team.id} style={{marginBottom:8,background:T.card,borderRadius:10,padding:'10px 12px'}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
@@ -476,7 +475,7 @@ function DupTab({stickers,dupCounts,T}){
     const r=[];
     for(const g of GROUPS_DATA)
       for(const t of g.teams){
-        const nums=Array.from({length:t.count},(_,i)=>i+1).filter(n=>stickers[k(t.id,n)]==='duplicate');
+        const nums=Array.from({length:t.count},(_,i)=>(t.startAt!==undefined?t.startAt:1)+i).filter(n=>stickers[k(t.id,n)]==='duplicate');
         if(nums.length)r.push({group:g,team:t,nums});
       }
     return r;
@@ -544,7 +543,7 @@ function StatsTab({stickers,T}){
   const pct=Math.min(100,Math.round(((owned+dup)/TOTAL)*100));
   const R=2*Math.PI*50;
   const groupStats=GROUPS_DATA.map(g=>{
-    const keys=g.teams.flatMap(t=>Array.from({length:t.count},(_,i)=>k(t.id,i+1)));
+    const keys=g.teams.flatMap(t=>Array.from({length:t.count},(_,i)=>k(t.id,(t.startAt!==undefined?t.startAt:1)+i)));
     const o=keys.filter(x=>stickers[x]==='owned').length;
     const d=keys.filter(x=>stickers[x]==='duplicate').length;
     return{group:g,owned:o,dup:d,total:keys.length,pct:Math.min(100,Math.round(((o+d)/keys.length)*100))};
@@ -641,7 +640,7 @@ function ScanTab({stickers,onToggle,T}){
     for(const code of codes){
       if(q.startsWith(code)){
         const num = parseInt(q.slice(code.length));
-        if(!isNaN(num)&&num>=1){
+        if(!isNaN(num)&&num>=0){
           const key = `${code} ${num}`;
           if(STICKER_MAP[key]) return {code:key,...STICKER_MAP[key]};
         }
@@ -974,7 +973,7 @@ function App(){
 
   const VALID_KEYS=useMemo(()=>{
     const s=new Set();
-    for(const g of GROUPS_DATA)for(const t of g.teams)for(let n=1;n<=t.count;n++)s.add(k(t.id,n));
+    for(const g of GROUPS_DATA)for(const t of g.teams)for(let i=0;i<t.count;i++){const n=(t.startAt!==undefined?t.startAt:1)+i;s.add(k(t.id,n));}
     return s;
   },[]);
   const owned=useMemo(()=>Object.entries(stickers).filter(([sk,v])=>v==='owned'&&VALID_KEYS.has(sk)).length,[stickers,VALID_KEYS]);
