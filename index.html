@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -235,7 +236,7 @@ function TeamSection({team,group,stickers,dupCounts,onToggle,onCount,T}){
   const dupNums=nums.filter(n=>stickers[k(team.id,n)]==='duplicate');
   const haveInAlbum=owned+dupNums.length;
   const extraCopies=dupNums.reduce((a,n)=>a+(dupCounts[k(team.id,n)]||1),0)-dupNums.length;
-  const pct=Math.round((haveInAlbum/team.count)*100);
+  const pct=Math.min(100,Math.round((haveInAlbum/team.count)*100));
   return(
     <div style={{marginBottom:2}}>
       <button onClick={()=>setOpen(o=>!o)} style={{
@@ -291,7 +292,7 @@ function GroupSection({group,stickers,dupCounts,onToggle,onCount,T,onComplete}){
   const owned=allKeys.filter(x=>stickers[x]==='owned').length;
   const dup=allKeys.filter(x=>stickers[x]==='duplicate').length;
   const total=allKeys.length;
-  const pct=Math.round(((owned+dup)/total)*100);
+  const pct=Math.min(100,Math.round(((owned+dup)/total)*100));
   const isComplete=(owned+dup)===total;
 
   useEffect(()=>{
@@ -540,13 +541,13 @@ function DupTab({stickers,dupCounts,T}){
 function StatsTab({stickers,T}){
   const owned=Object.values(stickers).filter(v=>v==='owned').length;
   const dup=Object.values(stickers).filter(v=>v==='duplicate').length;
-  const pct=Math.round(((owned+dup)/TOTAL)*100);
+  const pct=Math.min(100,Math.round(((owned+dup)/TOTAL)*100));
   const R=2*Math.PI*50;
   const groupStats=GROUPS_DATA.map(g=>{
     const keys=g.teams.flatMap(t=>Array.from({length:t.count},(_,i)=>k(t.id,i+1)));
     const o=keys.filter(x=>stickers[x]==='owned').length;
     const d=keys.filter(x=>stickers[x]==='duplicate').length;
-    return{group:g,owned:o,dup:d,total:keys.length,pct:Math.round(((o+d)/keys.length)*100)};
+    return{group:g,owned:o,dup:d,total:keys.length,pct:Math.min(100,Math.round(((o+d)/keys.length)*100))};
   });
   return(
     <div style={{padding:'0 12px 20px'}}>
@@ -640,7 +641,7 @@ function ScanTab({stickers,onToggle,T}){
     for(const code of codes){
       if(q.startsWith(code)){
         const num = parseInt(q.slice(code.length));
-        if(!isNaN(num)){
+        if(!isNaN(num)&&num>=1){
           const key = `${code} ${num}`;
           if(STICKER_MAP[key]) return {code:key,...STICKER_MAP[key]};
         }
@@ -971,9 +972,14 @@ function App(){
     });
   },[]);
 
-  const owned=useMemo(()=>Object.values(stickers).filter(v=>v==='owned').length,[stickers]);
-  const dup=useMemo(()=>Object.values(stickers).filter(v=>v==='duplicate').length,[stickers]);
-  const pct=Math.round(((owned+dup)/TOTAL)*100);
+  const VALID_KEYS=useMemo(()=>{
+    const s=new Set();
+    for(const g of GROUPS_DATA)for(const t of g.teams)for(let n=1;n<=t.count;n++)s.add(k(t.id,n));
+    return s;
+  },[]);
+  const owned=useMemo(()=>Object.entries(stickers).filter(([sk,v])=>v==='owned'&&VALID_KEYS.has(sk)).length,[stickers,VALID_KEYS]);
+  const dup=useMemo(()=>Object.entries(stickers).filter(([sk,v])=>v==='duplicate'&&VALID_KEYS.has(sk)).length,[stickers,VALID_KEYS]);
+  const pct=Math.min(100,Math.round(((owned+dup)/TOTAL)*100));
 
   const filteredGroups=useMemo(()=>{
     const q=search.toLowerCase().trim();
