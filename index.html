@@ -289,8 +289,8 @@ function StickerBtn({teamId,num,code,state,count,onToggle,onCount,isSpecial,T}){
 
 function TeamSection({team,group,stickers,dupCounts,onToggle,onCount,T}){
   const [open,setOpen]=useState(false);
+  const celebKey='panini_celeb_'+team.id;
   const [celebrating,setCelebrating]=useState(false);
-  const prevComplete=useRef(false);
   const nums=Array.from({length:team.count},(_,i)=>(team.startAt!==undefined?team.startAt:1)+i);
   const owned=nums.filter(n=>stickers[k(team.id,n)]==='owned').length;
   const dupNums=nums.filter(n=>stickers[k(team.id,n)]==='duplicate');
@@ -298,8 +298,16 @@ function TeamSection({team,group,stickers,dupCounts,onToggle,onCount,T}){
   const extraCopies=dupNums.reduce((a,n)=>a+(dupCounts[k(team.id,n)]||1),0)-dupNums.length;
   const pct=Math.min(100,Math.round((haveInAlbum/team.count)*100));
   const isComplete=haveInAlbum===team.count;
+  const prevComplete=useRef(isComplete);
   useEffect(()=>{
-    if(isComplete&&!prevComplete.current){setCelebrating(true);}
+    const alreadyCelebrated=localStorage.getItem(celebKey)==='1';
+    if(isComplete&&!prevComplete.current&&!alreadyCelebrated){
+      setCelebrating(true);
+      localStorage.setItem(celebKey,'1');
+    }
+    if(!isComplete&&alreadyCelebrated){
+      localStorage.removeItem(celebKey);
+    }
     prevComplete.current=isComplete;
   },[isComplete]);
   return(
